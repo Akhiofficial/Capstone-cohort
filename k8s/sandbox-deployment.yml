@@ -16,8 +16,8 @@ spec:
     spec:
       serviceAccountName: resource-manager
       containers:
-        - image: sandbox:latest
-          imagePullPolicy: Always
+        - image: sandbox:1.0.3
+          imagePullPolicy: IfNotPresent
           name: main-sandbox
           resources:
             limits:
