@@ -17,8 +17,15 @@ export const createService = async (sandboxId) => {
             },
             ports: [
                 {
+                    name: "http",
                     port: 80,
-                    targetPort: 'http'
+                    targetPort: '5173',
+                    protocol: "TCP"
+                }, {
+                    name: "agent-http",
+                    port: 3000,
+                    targetPort: '3000',
+                    protocol: "TCP"
                 }
             ]
         },
@@ -31,5 +38,5 @@ export const createService = async (sandboxId) => {
     });
 
     return response;
-    
+
 }

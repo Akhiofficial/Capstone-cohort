@@ -11,7 +11,7 @@ const WORK_DIR = '/workspace'
 
 app.get('/', (req, res) => {
     res.status(200).json({
-        message: "Hello from the agent",
+        message: "Hello from the sandbox agent",
         status: "ok"
     })
 })

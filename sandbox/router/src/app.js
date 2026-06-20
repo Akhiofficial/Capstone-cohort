@@ -8,49 +8,74 @@ const app = express();
 app.use(morgan("dev"));
 
 
-app.get('/api/status/healthz',(req,res)=>{
+app.get('/api/status/healthz', (req, res) => {
 
     res.status(200).json({
-        message:"Router is healthy",
-        status:'ok'
+        message: "Router is healthy",
+        status: 'ok'
     })
 })
 
 
-app.get('/api/status/readyz',(req,res)=>{
-    
+app.get('/api/status/readyz', (req, res) => {
+
     res.status(200).json({
-        message:"Router is ready",
-        status:'ok'
-    })
+        message: "Router is ready",
+        status: 'ok'
+    })  
 })
 
-const proxyCache = new Map();
+
+const proxies = {}
+const agentProxies = {}
+
+
+function getProxy(sandboxId) {
+
+    const target = `http://sandbox-service-${sandboxId}`; // Construct target URL
+
+    if (!proxies[ sandboxId ]) {
+        proxies[ sandboxId ] = createProxyMiddleware({
+            target,
+            changeOrigin: true,
+            ws: true,
+        })
+    }
+
+    return proxies[ sandboxId ];
+}
+
+function getAgentProxy(sandboxId) {
+
+    const target = `http://agent-service-${sandboxId}:3000`; // Construct target URL
+
+    if (!agentProxies[ sandboxId ]) {
+        agentProxies[ sandboxId ] = createProxyMiddleware({
+            target,
+            changeOrigin: true,
+            ws: true,
+        })
+    }
+
+    return agentProxies[ sandboxId ];
+}
+
 
 app.use((req, res, next) => {
 
     const host = req.headers.host
     const sandboxId = host.split('.')[0]; // extract only sandboxId
+    
 
-    const target = `http://sandbox-service-${sandboxId}` // target api constructed here
-
-    // Cache proxy instances per sandboxId to avoid recreating on every request
-    if (!proxyCache.has(sandboxId)) {
-        proxyCache.set(sandboxId, createProxyMiddleware({
-            target,
-            changeOrigin: true,
-            ws: true, // ws stands for websocket
-            on: {
-                error: (err, req, res) => {
-                    console.error('[Proxy Error]', err.message);
-                    res.status(502).send(`Error occurred while trying to proxy: ${host}${req.url}`);
-                }
-            }
-        }));
+    /**
+     * pod1.agent.localhost
+     * pod2.preview.localhost
+     */
+    if(host.split('.')[1] === 'agent') {
+        return getAgentProxy(sandboxId)(req, res, next);
+    } else {
+        return getProxy(sandboxId)(req, res, next);
     }
-
-    return proxyCache.get(sandboxId)(req, res, next);
-
 })
 
 
