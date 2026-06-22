@@ -47,7 +47,7 @@ function getProxy(sandboxId) {
 
 function getAgentProxy(sandboxId) {
 
-    const target = `http://agent-service-${sandboxId}:3000`; // Construct target URL
+    const target = `http://sandbox-service-${sandboxId}:3000`; // Construct target URL
 
     if (!agentProxies[ sandboxId ]) {
         agentProxies[ sandboxId ] = createProxyMiddleware({
@@ -65,7 +65,6 @@ app.use((req, res, next) => {
 
     const host = req.headers.host
     const sandboxId = host.split('.')[0]; // extract only sandboxId
-    
 
     /**
      * pod1.agent.localhost
