@@ -179,6 +179,9 @@ app.post("/create-files", async (req, res) => {
         const filePath = path.join(WORK_DIR, file)
 
         try{
+            console.log(path.dirname(filePath),filePath);
+            
+            await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
             await fs.promises.writeFile(filePath, content, 'utf-8');
             return {
                 [ filePath ] : 'file created successfully'
@@ -197,11 +200,7 @@ app.post("/create-files", async (req, res) => {
     })
 })  
 
-/**
- * @route DELETE /delete-files
- * @description delete a file 
- */
-app.delete("/delete-files",)
+
 
 
 export default app;
