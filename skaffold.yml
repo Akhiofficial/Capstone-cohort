@@ -7,6 +7,9 @@ build:
       context: ai-orchestration
       docker:
         dockerfile: dockerfile
+      sync:
+        infer:
+          - "src/**"
 
     - image: agent
       context: sandbox/agent
