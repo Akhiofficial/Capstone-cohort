@@ -1,6 +1,6 @@
 import express from "express";
 import morgan from "morgan";
-import agentRouter from "./routes/agent.routes";
+import agentRouter from "./routes/agent.routes.js";
 
 const app = express();
 
@@ -18,7 +18,7 @@ app.get("/api/ai/health", (req, res) => {
 })
 
 // Routes 
-app.use("/api/ai/agent", agentRouter)
+app.use("/api/ai", agentRouter)
 
 
 export default app;

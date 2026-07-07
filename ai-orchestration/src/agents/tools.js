@@ -9,7 +9,7 @@ export const listFiles = tool(
         console.log("using the list files  tool")
         console.log("==========================")
 
-        const response = await axios.get(`http://019f03f7-d595-7611-9514-bf581358ccdb.agent.localhost/list-files`)
+        const response = await axios.get(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/list-files`)
         console.log("==========================")
         console.log("list of files ", response.data)
         console.log("==========================")
@@ -32,7 +32,7 @@ export const readFiles = tool(
         console.log("using the read files tool with files ", filesList)
         console.log("==========================")
 
-        const response = await axios.get(`http://019f03f7-d595-7611-9514-bf581358ccdb.agent.localhost/read-files/?files=` + files.join(","))
+        const response = await axios.get(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/read-files/?files=` + files.join(","))
         console.log("==========================")
         console.log("read files from read files tool", response.data)
         console.log("==========================")
@@ -61,7 +61,7 @@ export const updateFiles = tool(
         console.log("using the update files tool with files ", files);
         console.log("==========================");
 
-        const response = await axios.patch(`http://019f03f7-d595-7611-9514-bf581358ccdb.agent.localhost/update-files`, {
+        const response = await axios.patch(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/update-files`, {
             updates: JSON.stringify(files)
         })
         console.log("==========================");
