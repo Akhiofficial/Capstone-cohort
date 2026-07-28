@@ -4,17 +4,22 @@ import * as z from "zod"
 
 
 export const listFiles = tool(
-    async () => {
-        console.log("==========================")
-        console.log("using the list files  tool")
-        console.log("==========================")
+    async ({ }, config) => {
+        try {
 
-        const response = await axios.get(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/list-files`)
-        console.log("==========================")
-        console.log("list of files ", response.data)
-        console.log("==========================")
+            const writer = config.writer
 
-        return JSON.stringify(response.data.files);
+            writer("Listing files in project directory...\n")
+
+            const response = await axios.get(`http://sandbox-service-${config.configurable.projectId}:3000/list-files`)
+
+            writer("Files listed successfully. Files: " + response.data.files.join(", ") + "\n")
+
+            return JSON.stringify(response.data.files);
+        } catch (error) {
+            console.error("Error in listFiles tool:", error.message);
+            return `Error: ${error.message}`;
+        }
     },
     {
         name: "list_files",
@@ -26,20 +31,25 @@ export const listFiles = tool(
 )
 
 export const readFiles = tool(
-    async ({ files: [] }) => {
+    async ({ files }, config) => {
+        try {
 
-        console.log("==========================")
-        console.log("using the read files tool with files ", filesList)
-        console.log("==========================")
+            const writer = config.writer
 
-        const response = await axios.get(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/read-files/?files=` + files.join(","))
-        console.log("==========================")
-        console.log("read files from read files tool", response.data)
-        console.log("==========================")
+            writer("Reading files from project directory..." + files.map(f => f).join(",") + "\n")
 
 
-        return JSON.stringify(response.data);
+            const response = await axios.get(`http://sandbox-service-${config.configurable.projectId}:3000/read-files/?files=` + (files ? files.join(",") : ""))
 
+            writer("Files read successfully" + "\n")
+
+
+
+            return JSON.stringify(response.data);
+        } catch (error) {
+            console.error("Error in readFiles tool:", error.message);
+            return `Error: ${error.message}`;
+        }
     },
     {
         name: "read_files",
@@ -55,20 +65,24 @@ export const readFiles = tool(
 )
 
 export const updateFiles = tool(
-    async ({ files }) => {
+    async ({ files }, config) => {
+        try {
 
-        console.log("==========================");
-        console.log("using the update files tool with files ", files);
-        console.log("==========================");
+            const writer = config.writer
 
-        const response = await axios.patch(`http://019f3bd4-0e2a-7722-80c4-db351319cf94.agent.localhost/update-files`, {
-            updates: JSON.stringify(files)
-        })
-        console.log("==========================");
-        console.log("update", response.data);
-        console.log("==========================");
+            writer("Updating files in project directory..." + files.map(f => f).join(",") + "\n")
 
-        return JSON.stringify(response.data.result);
+            const response = await axios.post(`http://sandbox-service-${config.configurable.projectId}:3000/create-files`, {
+                files: files
+            })
+
+            writer("Files updated successfully")
+
+            return JSON.stringify(response.data.result);
+        } catch (error) {
+            console.error("Error in updateFiles tool:", error.message);
+            return `Error: ${error.message}`;
+        }
     },
     {
         name: "update_files",
