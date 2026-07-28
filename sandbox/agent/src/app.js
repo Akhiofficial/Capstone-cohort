@@ -2,8 +2,49 @@ import express from 'express'
 import morgan from 'morgan';
 import fs from 'fs'
 import path from 'path';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import pty from 'node-pty';
 
 const app = express()
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PATCH", "DELETE"]
+    }
+});
+
+// Spawn a shared PTY process for the workspace terminal
+const shell = process.env.SHELL || 'bash';
+const ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
+    cwd: '/workspace',
+    env: process.env
+});
+
+ptyProcess.onData((data) => {
+    io.emit('terminal-output', data);
+});
+
+ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log(`PTY process exited with code: ${exitCode}, signal: ${signal}`);
+});
+
+io.on('connection', (socket) => {
+    console.log('Client connected: ' + socket.id);
+
+    socket.on('terminal-input', (data) => {
+        ptyProcess.write(data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected: ' + socket.id);
+    });
+});
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -203,4 +244,4 @@ app.post("/create-files", async (req, res) => {
 
 
 
-export default app;
+export default httpServer;
