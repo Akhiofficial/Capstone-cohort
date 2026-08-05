@@ -2,56 +2,32 @@ import express from 'express'
 import morgan from 'morgan';
 import fs from 'fs'
 import path from 'path';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import pty from 'node-pty';
+import { Server } from "socket.io"
+import http from 'http';
+import pty from 'node-pty'
+import os from 'os'
 
 const app = express()
-const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PATCH", "DELETE"]
-    }
-});
-
-// Spawn a shared PTY process for the workspace terminal
-const shell = process.env.SHELL || 'bash';
-const ptyProcess = pty.spawn(shell, [], {
-    name: 'xterm-color',
-    cols: 80,
-    rows: 30,
-    cwd: '/workspace',
-    env: process.env
-});
-
-ptyProcess.onData((data) => {
-    io.emit('terminal-output', data);
-});
-
-ptyProcess.onExit(({ exitCode, signal }) => {
-    console.log(`PTY process exited with code: ${exitCode}, signal: ${signal}`);
-});
-
-io.on('connection', (socket) => {
-    console.log('Client connected: ' + socket.id);
-
-    socket.on('terminal-input', (data) => {
-        ptyProcess.write(data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected: ' + socket.id);
-    });
-});
+const httpServer = http.createServer(app);
 
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PATCH"]
+    }
+});
+
+
 
 const WORK_DIR = '/workspace'
+
+
+
 
 app.get("/", (req, res) => {
     res.status(200).json({
@@ -59,6 +35,44 @@ app.get("/", (req, res) => {
         status: "ok"
     })
 })
+
+// Use bash as the shell
+const shell = process.env.SHELL || 'bash';
+
+// Spawn the pty process
+const ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
+    cwd: "/workspace",
+    env: process.env
+});
+
+
+ptyProcess.onData((data) => {
+    io.emit("terminal-output", data);
+});
+
+ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log(`PTY process exited with code: ${exitCode}, signal: ${signal}`);
+})
+
+
+io.on("connection", (socket) => {
+    console.log("Client Connected" + socket.id)
+
+    socket.on("terminal-input", (data) => {
+        ptyProcess.write(data);
+    })
+
+    socket.on("disconnect", () => {
+        console.log("Client Disconnected" + socket.id)
+    })
+
+
+
+})
+
 
 /**
  * @route GET /list-files
@@ -79,7 +93,7 @@ app.get("/list-files", async (req, res) => {
 
             // exclude the certain directories
             if (entry.isDirectory() && ['node_modules', '.git', 'dist', '.svelte-kit'].includes(entry.name)) {
-                continue;   
+                continue;
             }
 
             // recurcive call for directory 
@@ -106,7 +120,7 @@ app.get("/list-files", async (req, res) => {
             error: error.message
         })
     }
-    
+
 })
 
 
@@ -119,7 +133,7 @@ app.get("/read-files", async (req, res) => {
 
     const files = req.query.files
 
-    if(!files) {
+    if (!files) {
         return res.status(400).json({
             message: "No files requested",
             status: "error"
@@ -133,15 +147,15 @@ app.get("/read-files", async (req, res) => {
 
         const filePath = path.join(WORK_DIR, file);
 
-        try{
+        try {
             const content = await fs.promises.readFile(filePath, "utf-8")
             return {
-                [ filePath.replace("/workspace", "") ] : content
+                [filePath.replace("/workspace", "")]: content
             }
-        } catch (error){
+        } catch (error) {
             return { [filePath.replace("/workspace", "")]: `Error reading file: ${error.message}` }
         }
-            
+
     }))
 
     res.status(200).json({
@@ -150,7 +164,7 @@ app.get("/read-files", async (req, res) => {
         result
     })
 
-    
+
 })
 
 
@@ -164,7 +178,7 @@ app.patch("/update-files", async (req, res) => {
 
     const updates = req.body.updates
 
-    if(!updates || !Array.isArray(updates)) {
+    if (!updates || !Array.isArray(updates)) {
         return res.status(400).json({
             message: "No updates provided or invalid format",
             status: "error"
@@ -172,18 +186,18 @@ app.patch("/update-files", async (req, res) => {
     }
 
     const result = await Promise.all(updates.map(async (update) => {
-        
+
         const { file, content } = update
 
-        const filePath = path.join(WORK_DIR,file);
+        const filePath = path.join(WORK_DIR, file);
 
-        try{
+        try {
             await fs.promises.writeFile(filePath, content, 'utf-8');
 
             return {
                 [filePath]: "file updated successfully",
             }
-        } catch (error){
+        } catch (error) {
             return {
                 [filePath]: `Error updating file: ${error.message}`,
             }
@@ -208,28 +222,28 @@ app.patch("/update-files", async (req, res) => {
 app.post("/create-files", async (req, res) => {
     const files = req.body.files
 
-    if(!files || !Array.isArray(files)) {
+    if (!files || !Array.isArray(files)) {
         return res.status(400).json({
             message: "No files provided or invalid format",
             status: "error"
         })
-    } 
+    }
 
     const result = await Promise.all(files.map(async (fileObj) => {
         const { file, content } = fileObj
         const filePath = path.join(WORK_DIR, file)
 
-        try{
-            console.log(path.dirname(filePath),filePath);
-            
+        try {
+            console.log(path.dirname(filePath), filePath);
+
             await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
             await fs.promises.writeFile(filePath, content, 'utf-8');
             return {
-                [ filePath ] : 'file created successfully'
+                [filePath]: 'file created successfully'
             }
         } catch (error) {
             return {
-                [ filePath ] : `Error creating file : ${error.message}`
+                [filePath]: `Error creating file : ${error.message}`
             }
         }
     }))
@@ -239,7 +253,7 @@ app.post("/create-files", async (req, res) => {
         status: "ok",
         result
     })
-})  
+})
 
 
 
