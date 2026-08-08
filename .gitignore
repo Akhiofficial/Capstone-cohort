@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+k8s/secrets.yml
+dist/
+build/
+.DS_Store
+*.log

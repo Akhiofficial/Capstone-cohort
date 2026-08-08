@@ -33,6 +33,14 @@ build:
       docker:
         dockerfile: dockerfile
 
+    - image: auth
+      context: auth
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "src/**"
+
 manifests:
   rawYaml:
     - k8s/ai-deployment.yml
@@ -43,3 +51,7 @@ manifests:
     - k8s/router-service.yml
     - k8s/sandbox-deployment.yml
     - k8s/sandbox-service.yml
+    - k8s/auth-deployment.yml
+    - k8s/auth-service.yml
+    - k8s/secrets.yml
+
