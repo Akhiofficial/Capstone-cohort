@@ -40,3 +40,17 @@ export const createService = async (sandboxId) => {
     return response;
 
 }
+
+export async function deleteService(sandboxId) {
+    try {
+        const response = await k8sCoreApi.deleteNamespacedService({
+            namespace: 'default',
+            name: `sandbox-service-${sandboxId}`
+        });
+        return response;
+    } catch (error) {
+        const code = error?.statusCode ?? error?.response?.statusCode ?? error?.body?.code;
+        if (code === 404) return null; // already deleted by another replica
+        throw error;
+    }
+}

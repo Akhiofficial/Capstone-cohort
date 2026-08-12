@@ -2,6 +2,18 @@ import express from "express"
 import { createProxyMiddleware } from "http-proxy-middleware"
 import morgan from "morgan"
 import http from "http"
+import httpProxy from "http-proxy"
+import { refreshTTL } from "./config/redis.js"
+
+const wsProxy = httpProxy.createProxyServer({
+    changeOrigin: false
+});
+
+wsProxy.on('error', (err, req, socket) => {
+    console.error('WS proxy error:', err);
+    socket.destroy?.();
+});
+
 
 
 const app = express();
@@ -62,10 +74,12 @@ function getAgentProxy(sandboxId) {
 }
 
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
 
     const host = req.headers.host
     const sandboxId = host.split('.')[0]; // extract only sandboxId
+
+    await refreshTTL(sandboxId)
 
     /**
      * pod1.agent.localhost
@@ -82,20 +96,29 @@ app.use((req, res, next) => {
 // Create the HTTP server explicitly
 const server = http.createServer(app);
 
-// ✅ Handle WebSocket upgrades — this is what was missing
+// ✅ Handle WebSocket upgrades — using dedicated http-proxy instance
 server.on('upgrade', (req, socket, head) => {
     const host = req.headers.host;
+    if (!host) {
+        socket.destroy();
+        return;
+    }
     const sandboxId = host.split('.')[0];
     const type = host.split('.')[1];
 
     console.log(`WS upgrade request: ${host}, sandboxId: ${sandboxId}, type: ${type}`);
 
     if (type === 'agent') {
-        const proxy = getAgentProxy(sandboxId);
-        proxy.upgrade(req, socket, head);
+        wsProxy.ws(req, socket, head, {
+            target: `http://sandbox-service-${sandboxId}:3000`,
+            changeOrigin: true
+        });
     } else if (type === 'preview') {
-        const proxy = getProxy(sandboxId);
-        proxy.upgrade(req, socket, head);
+        req.url = '/'; // Strip query parameters (like ?token=...) to prevent Vite from serving HTTP index page on WS upgrade
+        wsProxy.ws(req, socket, head, {
+            target: `http://sandbox-service-${sandboxId}`,
+            changeOrigin: false
+        });
     } else {
         socket.destroy();
     }
