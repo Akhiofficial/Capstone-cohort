@@ -1,214 +1,181 @@
-import { useEffect, useRef, useState } from 'react'
-import { useAIChat } from '../hooks/useAIChat'
+import { useEffect, useRef, useState } from 'react';
+import { useAIChat } from '../hooks/useAIChat';
+import { Send, Paperclip, Mic, StopCircle, RefreshCw, Play } from 'lucide-react';
 
-function MessageBubble({ msg }) {
-  const isUser = msg.type === 'user'
-  const isStatus = msg.type === 'status'
+function MessageBubble({ msg, onOpenFile }) {
+  const isUser = msg.type === 'user';
+  const isStatus = msg.type === 'status';
 
   if (isStatus) {
+    // If it's a file update status, make it look like a card
+    if (msg.content.includes('Updating files') || msg.content.includes('updated')) {
+      return (
+        <div className="my-3 p-3 rounded-xl bg-[rgba(124,58,237,0.05)] border border-[rgba(124,58,237,0.15)] animate-slideIn">
+          <div className="flex items-center gap-2 mb-2 text-sm text-[var(--accent-cyan)]">
+            <RefreshCw size={14} className="animate-spin" />
+            <span className="font-medium">AI updated project files</span>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] mb-3 opacity-80 font-mono line-clamp-2">
+            {msg.content}
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="chat-bubble status flex items-start gap-2 animate-slideIn">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" className="mt-0.5 flex-shrink-0">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
-        <span>{msg.content}</span>
+      <div className="chat-bubble status flex items-start gap-2 animate-slideIn opacity-70">
+        <Play size={12} className="mt-0.5 flex-shrink-0 text-[var(--text-muted)]" />
+        <span className="font-mono text-[11px]">{msg.content}</span>
       </div>
-    )
+    );
   }
 
   return (
-    <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
-      <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-      <div className="flex items-center justify-end mt-1.5">
-        <span style={{ fontSize: '10px', opacity: 0.5 }}>
-          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-4 animate-slideIn`}>
+      <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 ${
+        isUser 
+          ? 'bg-[var(--accent-bg)] text-[var(--text-primary)] border border-[rgba(255,255,255,0.05)]' 
+          : 'bg-[rgba(255,255,255,0.03)] text-[var(--text-secondary)] border border-[rgba(255,255,255,0.02)]'
+      }`}>
+        <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
       </div>
+      <span className="text-[10px] text-[var(--text-muted)] mt-1.5 px-2">
+        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </span>
     </div>
-  )
+  );
 }
 
 function TypingIndicator() {
   return (
-    <div className="chat-bubble ai flex items-center gap-1.5" style={{ padding: '12px 16px' }}>
+    <div className="flex items-center gap-1.5 p-3 mb-4 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] max-w-[80px]">
       {[0, 1, 2].map(i => (
-        <div key={i} className="w-2 h-2 rounded-full"
+        <div key={i} className="w-1.5 h-1.5 rounded-full"
           style={{
             background: 'var(--text-secondary)',
             animation: `pulseGlow 1.2s ease-in-out ${i * 0.2}s infinite`,
           }} />
       ))}
     </div>
-  )
+  );
 }
 
-export default function ChatPanel({ sandboxId }) {
-  const { messages, isStreaming, streamingStatus, sendMessage, clearMessages } = useAIChat(sandboxId)
-  const [input, setInput] = useState('')
-  const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
+export default function ChatPanel({ sandboxId, onOpenFile, isCollapsed }) {
+  const { messages, isStreaming, streamingStatus, sendMessage, clearMessages } = useAIChat(sandboxId);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isStreaming])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isStreaming, streamingStatus]);
 
   const handleSend = () => {
-    if (!input.trim() || isStreaming) return
-    sendMessage(input.trim())
-    setInput('')
-    inputRef.current?.focus()
-  }
+    if (!input.trim() || isStreaming) return;
+    sendMessage(input.trim());
+    setInput('');
+    inputRef.current?.focus();
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      e.preventDefault();
+      handleSend();
     }
+  };
+
+  if (isCollapsed) {
+    return (
+      <div className="w-12 h-full flex flex-col items-center py-4 border-l border-[var(--border)] bg-[rgba(255,255,255,0.01)]">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer" style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)' }}>
+          <span className="text-white text-xs font-bold">AI</span>
+        </div>
+      </div>
+    );
   }
 
-  const suggestions = [
-    'Create a dark landing page with a hero section',
-    'Make a counter app with animations',
-    'Build a todo list with local storage',
-    'Add a navigation bar with smooth scroll',
-  ]
-
   return (
-    <div className="chat-panel">
+    <div className="w-[320px] md:w-[380px] h-full flex flex-col border-l border-[var(--border)] bg-[#0A0D14] flex-shrink-0">
       {/* Header */}
-      <div className="panel-header">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center"
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shadow-[0_0_10px_rgba(124,58,237,0.3)]"
             style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            </svg>
+            <span className="text-white text-[10px] font-bold">AI</span>
           </div>
-          <span className="panel-title">AI Assistant</span>
+          <span className="text-sm font-semibold text-[var(--text-primary)]">AI Assistant</span>
           {isStreaming && (
-            <div className="flex items-center gap-1.5 ml-1">
-              <div className="status-dot loading" />
-              <span className="text-xs" style={{ color: '#f59e0b', fontSize: '10px' }}>Generating...</span>
-            </div>
+             <span className="flex h-2 w-2 relative ml-1">
+               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+               <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+             </span>
           )}
         </div>
-        <button onClick={clearMessages} title="Clear chat"
-          className="p-1.5 rounded transition-colors"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2" strokeLinecap="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14H6L5 6" />
-            <path d="M10 11v6M14 11v6" />
-            <path d="M9 6V4h6v2" />
-          </svg>
-        </button>
       </div>
 
       {/* Messages */}
-      <div className="chat-messages">
+      <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar scroll-smooth">
         {messages.map(msg => (
-          <MessageBubble key={msg.id} msg={msg} />
+          <MessageBubble key={msg.id} msg={msg} onOpenFile={onOpenFile} />
         ))}
         {isStreaming && <TypingIndicator />}
-
-        {/* Status indicator */}
+        
         {isStreaming && streamingStatus && (
-          <div className="text-xs px-3 py-1.5 rounded-lg animate-pulse"
-            style={{
-              background: 'rgba(6,182,212,0.06)',
-              border: '1px solid rgba(6,182,212,0.15)',
-              color: 'var(--accent-cyan)',
-              fontFamily: 'monospace',
-            }}>
-            ⚙ {streamingStatus}
-          </div>
+           <div className="flex items-center justify-center mt-2">
+             <div className="text-[10px] px-3 py-1.5 rounded-full bg-[rgba(255,255,255,0.03)] border border-[var(--border)] text-[var(--text-muted)] animate-pulse font-mono">
+               {streamingStatus}
+             </div>
+           </div>
         )}
-
-        {/* Suggestions (show when only welcome message) */}
-        {messages.length === 1 && !isStreaming && (
-          <div className="flex flex-col gap-2 mt-2">
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Try asking:</p>
-            {suggestions.map(s => (
-              <button key={s} onClick={() => { setInput(s); inputRef.current?.focus() }}
-                className="text-left px-3 py-2.5 rounded-xl text-xs transition-all"
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-secondary)',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'
-                  e.currentTarget.style.background = 'rgba(124,58,237,0.08)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--border)'
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                }}>
-                💡 {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Input Area */}
-      <div className="chat-input-area">
-        <div className="relative flex flex-col rounded-2xl overflow-hidden"
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-strong)',
-          }}>
+      {/* Premium Chat Input */}
+      <div className="p-4 bg-[rgba(255,255,255,0.01)] border-t border-[var(--border)]">
+        <div 
+          className={`relative flex flex-col rounded-xl overflow-hidden transition-all duration-300 ${
+            input.trim() ? 'bg-[rgba(255,255,255,0.04)] border-[var(--border-strong)]' : 'bg-[rgba(255,255,255,0.02)] border-[var(--border)]'
+          } focus-within:border-[rgba(124,58,237,0.5)] focus-within:shadow-[0_0_15px_rgba(124,58,237,0.1)]`}
+        >
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isStreaming}
-            placeholder={isStreaming ? 'AI is working...' : 'Describe what you want to build...'}
+            placeholder="Describe what you want to build..."
             rows={3}
-            className="w-full px-4 pt-3 pb-1 text-sm resize-none outline-none bg-transparent"
-            style={{
-              color: 'var(--text-primary)',
-              fontFamily: 'Inter, sans-serif',
-              caretColor: '#7c3aed',
-            }}
+            className="w-full px-4 pt-3 pb-2 text-[13px] resize-none outline-none bg-transparent text-[var(--text-primary)] custom-scrollbar"
+            style={{ fontFamily: 'Inter, sans-serif' }}
           />
-          <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {isStreaming ? '✨ Generating your code...' : 'Enter ↵ to send · Shift+Enter for newline'}
-            </span>
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isStreaming}
-              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: input.trim() && !isStreaming
-                  ? 'linear-gradient(135deg, #7c3aed, #06b6d4)'
-                  : 'rgba(255,255,255,0.1)',
-                boxShadow: input.trim() && !isStreaming ? '0 0 16px rgba(124,58,237,0.4)' : 'none',
-              }}>
-              {isStreaming ? (
-                <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white"
-                  strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              )}
-            </button>
+          <div className="flex items-center justify-between px-3 py-2 bg-[rgba(0,0,0,0.2)]">
+            <div className="flex items-center gap-1 text-[var(--text-muted)]">
+              <button className="p-1.5 hover:text-white transition-colors"><Paperclip size={14} /></button>
+              <button className="p-1.5 hover:text-white transition-colors"><Mic size={14} /></button>
+            </div>
+            
+            {isStreaming ? (
+              <button 
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgba(239,68,68,0.1)] text-red-400 hover:bg-[rgba(239,68,68,0.2)] transition-colors text-xs font-medium"
+              >
+                <StopCircle size={14} /> Stop
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className={`flex items-center justify-center p-1.5 rounded-lg transition-all ${
+                  input.trim() 
+                    ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' 
+                    : 'bg-[rgba(255,255,255,0.05)] text-[var(--text-muted)]'
+                }`}
+              >
+                <Send size={14} className={input.trim() ? "ml-0.5" : ""} />
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

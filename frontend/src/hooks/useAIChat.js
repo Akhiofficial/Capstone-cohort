@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 const AI_API = '/api/ai/invoke'
 
 export function useAIChat(sandboxId) {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState(() => [
     {
       id: 'welcome',
       type: 'ai',

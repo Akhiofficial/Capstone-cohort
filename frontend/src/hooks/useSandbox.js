@@ -6,20 +6,20 @@ function loadSession() {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY)
     if (raw) return JSON.parse(raw)
-  } catch (_) {}
+  } catch {}
   return null
 }
 
 function saveSession(data) {
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(data))
-  } catch (_) {}
+  } catch {}
 }
 
 function clearSession() {
   try {
     sessionStorage.removeItem(SESSION_KEY)
-  } catch (_) {}
+  } catch {}
 }
 
 // Poll the agent until it responds (any non-5xx = agent pod is up and routing works).
