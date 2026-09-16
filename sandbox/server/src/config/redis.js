@@ -12,32 +12,24 @@ export async function createSandboxKey(sandboxId) {
     }), "EX", 120);
 }
 
-// Enable key-event expiration notifications (configured via the main client)
-redis.config("SET", "notify-keyspace-events", "Ex").catch(err => {
-    console.error("Failed to set notify-keyspace-events config:", err.message);
-});
+subscriber.config("SET", "notify-keyspace-events", "Ex");
 
 subscriber.subscribe("__keyevent@0__:expired");
 
 subscriber.on("message", async (channel, key) => {
     console.log(`Key expired: ${key}`);
 
-    const parts = key.split(":");
-    if (parts[0] !== "sandbox") return;
+    // sandbox: 019ff527-0553-7598-9308-69c821f5687a
+    const sandboxId = key.split(":")[1]
 
-    const sandboxId = parts[1];
-    if (!sandboxId) return;
+    await Promise.all([
+        deletePod(sandboxId),
+        deleteService(sandboxId)
+    ]);
 
-    try {
-        console.log(`Deleting resources for Sandbox: ${sandboxId}`);
-        await Promise.all([
-            deletePod(sandboxId),
-            deleteService(sandboxId)
-        ]);
-        console.log(`Sandbox ${sandboxId} deleted successfully`);
-    } catch (error) {
-        console.error(`Error deleting sandbox ${sandboxId} resources:`, error.message || error);
-    }
+
+    console.log(`Sandbox ${sandboxId} deleted successfully`);
+
 });
 
 export default { redis, subscriber }

@@ -33,7 +33,7 @@ agentRouter.post("/invoke", async (req, res) => {
         res.end();
     } catch (error) {
         console.log("Error in invoking agent ", error)
-        res.status(500).json({ error: "Failed to invoke agent" })
+            res.status(500).json({ error: "Failed to invoke agent" })
 
     }
 })

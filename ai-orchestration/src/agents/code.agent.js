@@ -11,7 +11,7 @@ AbortSignal.timeout = function (ms) {
 
 
 const model = new ChatMistralAI({
-    model: "mistral-large-latest",
+    model: "open-mistral-nemo",
     apiKey: process.env.MISTRAL_API_KEY,
     maxRetries: 0,
     timeout: 120000,
