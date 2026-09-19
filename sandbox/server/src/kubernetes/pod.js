@@ -85,7 +85,6 @@ export async function deletePod(sandboxId) {
         name: `sandbox-pod-${sandboxId}`
     }, {
         gracePeriodSeconds: 0,
-
     })
 
     return response;

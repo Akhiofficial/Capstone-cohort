@@ -75,21 +75,27 @@ function getAgentProxy(sandboxId) {
 
 
 app.use(async (req, res, next) => {
+    const host = req.headers.host;
+    if (!host) return next();
 
-    const host = req.headers.host
-    const sandboxId = host.split('.')[0]; // extract only sandboxId
+    const parts = host.split('.');
+    const sandboxId = parts[0];
+    const type = parts[1]; // 'agent' or 'preview'
 
-    await refreshTTL(sandboxId)
+    if (type === 'agent' || type === 'preview') {
+        // Exclude automatic background Socket.IO heartbeats/polling so they don't keep the TTL alive indefinitely
+        if (!req.path.startsWith('/socket.io')) {
+            await refreshTTL(sandboxId);
+        }
 
-    /**
-     * pod1.agent.localhost
-     * pod2.preview.localhost
-     */
-    if (host.split('.')[1] === 'agent') {
-        return getAgentProxy(sandboxId)(req, res, next);
-    } else if (host.split('.')[1] === 'preview') {
-        return getProxy(sandboxId)(req, res, next);
+        if (type === 'agent') {
+            return getAgentProxy(sandboxId)(req, res, next);
+        } else if (type === 'preview') {
+            return getProxy(sandboxId)(req, res, next);
+        }
     }
+
+    next();
 })
 
 

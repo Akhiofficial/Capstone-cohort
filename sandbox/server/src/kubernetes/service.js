@@ -1,5 +1,6 @@
 import { k8sCoreApi } from "./config.js";
 
+// create service 
 export const createService = async (sandboxId) => {
 
     const serviceManifest = {
@@ -41,6 +42,7 @@ export const createService = async (sandboxId) => {
 
 }
 
+// delete the service
 export async function deleteService(sandboxId) {
     try {
         const response = await k8sCoreApi.deleteNamespacedService({

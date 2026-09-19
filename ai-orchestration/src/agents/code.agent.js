@@ -1,7 +1,10 @@
 import "dotenv/config";
+import dns from "node:dns";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { listFiles, readFiles, updateFiles } from "./tools.js";
+
+dns.setDefaultResultOrder("ipv4first");
 
 // Monkey-patch AbortSignal.timeout to bypass Mistral SDK's hardcoded 30s timeout
 const originalTimeout = AbortSignal.timeout;
@@ -13,7 +16,7 @@ AbortSignal.timeout = function (ms) {
 const model = new ChatMistralAI({
     model: "open-mistral-nemo",
     apiKey: process.env.MISTRAL_API_KEY,
-    maxRetries: 0,
+    maxRetries: 3,
     timeout: 120000,
 });
 

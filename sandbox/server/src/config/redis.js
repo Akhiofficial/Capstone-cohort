@@ -19,7 +19,6 @@ subscriber.subscribe("__keyevent@0__:expired");
 subscriber.on("message", async (channel, key) => {
     console.log(`Key expired: ${key}`);
 
-    // sandbox: 019ff527-0553-7598-9308-69c821f5687a
     const sandboxId = key.split(":")[1]
 
     await Promise.all([
