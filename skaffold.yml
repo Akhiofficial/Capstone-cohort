@@ -41,6 +41,14 @@ build:
         infer:
           - "src/**"
 
+    - image: notification
+      context: notification
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "src/**"
+
 manifests:
   rawYaml:
     - k8s/ai-deployment.yml
@@ -54,3 +62,5 @@ manifests:
     - k8s/auth-deployment.yml
     - k8s/auth-service.yml
     - k8s/secrets.yml
+    - k8s/notification-deployment.yml
+    - k8s/notification-service.yml
