@@ -1,0 +1,110 @@
+{
+  "info": {
+    "_postman_id": "8c9d659f-c8ba-49fe-9144-88c7d4c5afb2",
+    "name": "Capstone - Manual API Tests",
+    "description": "Run folders in order. OAuth is the only authentication flow; after completing it in a browser, copy the token cookie value into the collection variable `token`. Sandbox start creates a temporary sandbox (Redis TTL: 120 seconds).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost", "type": "string" },
+    { "key": "token", "value": "PASTE_GOOGLE_OAUTH_TOKEN_HERE", "type": "string" },
+    { "key": "projectId", "value": "", "type": "string" },
+    { "key": "sandboxId", "value": "", "type": "string" },
+    { "key": "agentBaseUrl", "value": "http://{{sandboxId}}.agent.localhost", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/_status/healthz" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Auth is healthy', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Ready",
+          "request": { "method": "GET", "url": "{{baseUrl}}/_status/readyz" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Auth is ready', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Google OAuth (open in browser)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/google", "description": "Open this request URL in a browser, complete Google sign-in, then copy the `token` cookie into the collection variable. The protected APIs below send it as Cookie: token={{token}}." }
+        }
+      ]
+    },
+    {
+      "name": "2. Sandbox API",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/sandbox/health" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sandbox API is healthy', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create dummy project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Cookie", "value": "token={{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman demo project\"\n}" },
+            "url": "{{baseUrl}}/api/sandbox/project"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Project created', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.collectionVariables.set('projectId', body.project._id);"] } }]
+        },
+        {
+          "name": "Start sandbox",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Cookie", "value": "token={{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectId\": \"{{projectId}}\"\n}" },
+            "url": "{{baseUrl}}/api/sandbox/sandbox/start"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sandbox created', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.collectionVariables.set('sandboxId', body.sandboxId);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "3. Sandbox Agent (run after sandbox starts)",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{agentBaseUrl}}/" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Agent is healthy', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create dummy file",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"files\": [{\n    \"file\": \"notes/postman-test.txt\",\n    \"content\": \"Created by Postman.\"\n  }]\n}" }, "url": "{{agentBaseUrl}}/create-files" }
+        },
+        {
+          "name": "List files",
+          "request": { "method": "GET", "url": "{{agentBaseUrl}}/list-files" }
+        },
+        {
+          "name": "Read dummy file",
+          "request": { "method": "GET", "url": "{{agentBaseUrl}}/read-files?files=notes/postman-test.txt" }
+        },
+        {
+          "name": "Update dummy file",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"updates\": [{\n    \"file\": \"notes/postman-test.txt\",\n    \"content\": \"Updated by Postman.\"\n  }]\n}" }, "url": "{{agentBaseUrl}}/update-files" }
+        }
+      ]
+    },
+    {
+      "name": "4. Platform health",
+      "item": [
+        { "name": "Router health", "request": { "method": "GET", "url": "{{baseUrl}}/api/status/healthz" } },
+        { "name": "Router ready", "request": { "method": "GET", "url": "{{baseUrl}}/api/status/readyz" } },
+        { "name": "AI health", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/health" } }
+      ]
+    },
+    {
+      "name": "5. AI Orchestration",
+      "item": [
+        {
+          "name": "Invoke with dummy prompt",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"message\": \"Create a simple welcome page with a blue heading.\"\n}" }, "url": "{{baseUrl}}/api/ai/invoke" },
+          "description": "Returns a server-sent event stream; use Postman's response view or Console to inspect chunks. This may invoke the configured AI provider."
+        }
+      ]
+    }
+  ]
+}

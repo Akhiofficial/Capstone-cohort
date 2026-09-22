@@ -41,10 +41,10 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
         });
 
         
-        res.redirect("/");
+        res.redirect("http://localhost:5173");
     } catch (error) {
         console.log("error during Google authication", error);
-        res.redirect("/");
+        res.redirect("http://localhost:5173");
     }
 });
 
