@@ -13,14 +13,6 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
         const { id, displayName, emails, photos } = req.user;
         let user = await User.findOne({ googleId: id });
 
-        // send notification in the Queue
-        await sendAuthNotification({
-            userId: user._id,
-            action: 'google_login',
-            timestamp: new Date(),
-            email: emails[ 0 ].value 
-        })
-
         if (!user) {
             user = new User({
                 googleId: id,
@@ -31,6 +23,13 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
             })
             await user.save();
         }
+
+        await sendAuthNotification({
+            userId: user._id,
+            action: 'google_login',
+            timestamp: new Date(),
+            email: emails[0].value
+        });
 
         // Generate token 
         const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
