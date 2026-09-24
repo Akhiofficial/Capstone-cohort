@@ -26,27 +26,26 @@ router.post("/project", authMiddleware, async (req, res) => {
 });
 
 // list the project
-router.get("prjects", authMiddleware, async (req, res) => {
-  const projects = await Project.findOne({
-    _id: projectId,
+router.get("/projects", authMiddleware, async (req, res) => {
+  const projects = await Project.find({
     user: req.user._id,
   });
 
   res.status(200).json({
     success: true,
     projects,
-    message: "Project received Successfully",
+    message: "Projects received Successfully",
   });
 });
 
 // start the sandbox api POST
-router.post("/sandbox/start", authMiddleware, async (req, res) => {
+router.post("/start", authMiddleware, async (req, res) => {
   try {
     //check if project already exist
     const projectId = req.body.projectId;
     const project = await Project.findOne({
       _id: projectId,
-      user: req.user.id,
+      user: req.user._id,
     });
 
     if (!project) {
@@ -56,7 +55,7 @@ router.post("/sandbox/start", authMiddleware, async (req, res) => {
     const sandboxId = uuid();
 
     await Promise.all([
-      createPod(sandboxId),
+      createPod(sandboxId, projectId),
       createService(sandboxId),
       createSandboxKey(sandboxId),
     ]);

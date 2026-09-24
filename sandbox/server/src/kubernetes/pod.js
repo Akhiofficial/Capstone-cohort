@@ -2,7 +2,7 @@ import { k8sCoreApi } from "./config.js";
 
 
 
-export async function createPod(sandboxId) {
+export async function createPod(sandboxId, projectId) {
 
     const podManifest = {
         metadata: {
@@ -57,6 +57,60 @@ export async function createPod(sandboxId) {
                     resources: {
                         limits: { cpu: "500m", memory: "1Gi" },
                         requests: { cpu: "250m", memory: "500Mi" }
+                    },
+                    volumeMounts: [
+                        {
+                            name: "workspace-volume",
+                            mountPath: "/workspace"
+                        }
+                    ]
+                }, {
+                    image: "sync-agent",
+                    imagePullPolicy: "IfNotPresent",
+                    name: "sync-agent-container",
+                    env: [
+                        { name: "PROJECT_ID", value: projectId },
+                        { name: "LOCAL_DIRECTORY", value: "/workspace" },
+                        {
+                            name: "S3_BUCKET",
+                            valueFrom: {
+                                secretKeyRef: {
+                                    name: "aws",
+                                    key: "S3_BUCKET"
+                                }
+                            }
+                        },
+                        {
+                            name: "AWS_REGION",
+                            valueFrom: {
+                                secretKeyRef: {
+                                    name: "aws",
+                                    key: "AWS_REGION"
+                                }
+                            }
+                        },
+                        {
+                            name: "AWS_ACCESS_KEY_ID",
+                            valueFrom: {
+                                secretKeyRef: {
+                                    name: "aws",
+                                    key: "AWS_ACCESS_KEY_ID"
+                                }
+                            }
+                        },
+                        {
+                            name: "AWS_SECRET_ACCESS_KEY",
+                            valueFrom: {
+                                secretKeyRef: {
+                                    name: "aws",
+                                    key: "AWS_SECRET_ACCESS_KEY"
+                                }
+                            }
+                        }
+                    ],
+                    resources: {
+                        limits: { cpu: "250m", memory: "256Mi" },
+                        requests: { cpu: "100m", memory: "128Mi" }
                     },
                     volumeMounts: [
                         {

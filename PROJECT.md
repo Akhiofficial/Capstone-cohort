@@ -382,7 +382,12 @@ Each sandbox pod contains:
 - Resource limits: CPU 500m / Memory 1Gi; requests: CPU 250m / Memory 500Mi
 - Volume mount: `workspace-volume` → `/workspace`
 
-Both containers share the same `emptyDir` volume (`workspace-volume`), which is seeded by the init container. This means file writes from the agent are immediately visible to Vite's file-watcher, triggering HMR.
+**Container 3 — `sync-agent-container`**
+- Image: `sync-agent`
+- Watches the shared `/workspace` directory with Chokidar and uploads added/changed files to S3 as `{projectId}/{relative-path}`. Deleting a local file deletes its matching S3 object.
+- Requires `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET` in the Kubernetes `aws` secret. The AWS SDK also supports workload/IRSA credentials if the explicit key variables are omitted from a different deployment setup.
+
+All three containers share the same `emptyDir` volume (`workspace-volume`), which is seeded by the init container. This means file writes from the agent are immediately visible to Vite's file-watcher and the S3 sync sidecar.
 
 ### 4.3 Per-Sandbox K8s Service
 

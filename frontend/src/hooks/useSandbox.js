@@ -90,9 +90,23 @@ export function useSandbox() {
     setStatus('loading')
     setError(null)
     try {
+      // 1. Create a project first
+      const projRes = await fetch(`/api/sandbox/project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'My Sandbox' })
+      })
+      if (!projRes.ok) throw new Error(`HTTP ${projRes.status}: ${projRes.statusText}`)
+      const projData = await projRes.json()
+      if (!projData.success) throw new Error(projData.message || 'Failed to create project')
+      
+      const projectId = projData.project._id
+
+      // 2. Start the sandbox using the created projectId
       const res = await fetch(`/api/sandbox/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
       const data = await res.json()
